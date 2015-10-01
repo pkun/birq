@@ -89,7 +89,7 @@ Actually the birq balancing is not perfect. But I think the perfect balancing is
 
 # Usage
 
-The current version of birq is 1.2.0.
+The current version of birq is 1.3.0.
 
 ```
 $ birq [options]
