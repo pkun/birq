@@ -1,7 +1,7 @@
 ---
 title: The BIRQ user manual
 author: Sergey Kalichev &lt;serj.kalichev@gmail.com&gt;
-date: 2014
+date: 2015
 ...
 
 # Overview
@@ -16,6 +16,8 @@ There are two well known balancer projects:
 * irqd <https://github.com/vaesoo/irqd>
 
 The both projects have an advantages and disadvantages. I have used an irqbalance for a long time. It's good project but now the accumulated problems make me to start new balancer project. I will consider some irqd and irqbalace problems later but firstly I want to note several important problems with IRQ balancing that can't be solved now by any balancer including birq.
+
+BIRQ project uses BSD license since birq-1.3.0 version. The earlier versions contain some GPL code.
 
 # BIRQ related links
 
