@@ -7,6 +7,8 @@
 *.la
 *.a
 *.so
+*.pdf
+*.html
 *~
 
 /autom4te.cache
