@@ -2,6 +2,7 @@
 #define _birq_h
 
 #define BIRQ_PIDFILE "/var/run/birq.pid"
+#define BIRQ_CFGFILE "/etc/birq/birq.conf"
 
 /* Interval beetween balance iterations, in seconds.
    The long interval is used when there are no overloaded CPUs.

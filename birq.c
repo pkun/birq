@@ -46,6 +46,7 @@ static void help(int status, const char *argv0);
 static struct options *opts_init(void);
 static void opts_free(struct options *opts);
 static int opts_parse(int argc, char *argv[], struct options *opts);
+static int parse_config(const char *fname, struct options *opts);
 
 /* Command line options */
 struct options {
@@ -456,4 +457,12 @@ static void help(int status, const char *argv0)
 		printf("\t-I <sec>, --long-interval=<sec> Long iteration interval.\n");
 		printf("\t-s <strategy>, --strategy=<strategy> Strategy to choose IRQ to move (min/max/rnd).\n");
 	}
+}
+
+/*--------------------------------------------------------- */
+/* Parse config file */
+static int parse_config(const char *fname, struct options *opts)
+{
+
+	return 0;
 }
