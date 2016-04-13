@@ -5,12 +5,15 @@ liblub_a_SOURCES =
 noinst_HEADERS += \
     lub/list.h \
     lub/c_decl.h \
-    lub/log.h
+    lub/log.h \
+    lub/ini.h
 
 EXTRA_DIST +=   \
     lub/list/module.am \
     lub/log/module.am \
+    lub/ini/module.am \
     lub/README
 
 include $(top_srcdir)/lub/list/module.am
 include $(top_srcdir)/lub/log/module.am
+include $(top_srcdir)/lub/ini/module.am
