@@ -6,14 +6,21 @@ noinst_HEADERS += \
     lub/list.h \
     lub/c_decl.h \
     lub/log.h \
-    lub/ini.h
+    lub/ini.h \
+    lub/string.h \
+    lub/types.h \
+    lub/ctype.h
 
 EXTRA_DIST +=   \
     lub/list/module.am \
     lub/log/module.am \
     lub/ini/module.am \
+    lub/string/module.am \
+    lub/ctype/module.am \
     lub/README
 
 include $(top_srcdir)/lub/list/module.am
 include $(top_srcdir)/lub/log/module.am
 include $(top_srcdir)/lub/ini/module.am
+include $(top_srcdir)/lub/string/module.am
+include $(top_srcdir)/lub/ctype/module.am

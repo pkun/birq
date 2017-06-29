@@ -27,6 +27,7 @@
 #include "birq.h"
 #include "lub/log.h"
 #include "lub/list.h"
+#include "lub/ini.h"
 #include "irq.h"
 #include "numa.h"
 #include "cpu.h"
@@ -51,6 +52,8 @@ static int parse_config(const char *fname, struct options *opts);
 /* Command line options */
 struct options {
 	char *pidfile;
+	char *cfgfile;
+	int cfgfile_userdefined;
 	char *pxm; /* Proximity config file */
 	int debug; /* Don't daemonize in debug mode */
 	int log_facility;
@@ -90,6 +93,22 @@ int main(int argc, char **argv)
 	opts = opts_init();
 	if (opts_parse(argc, argv, opts))
 		goto err;
+
+	/* Parse config file */
+	if (!access(opts->cfgfile, R_OK)) {
+		if (parse_config(opts->cfgfile, opts))
+			goto err;
+	} else if (opts->cfgfile_userdefined) {
+		fprintf(stderr, "Error: Can't find config file %s\n",
+			opts->cfgfile);
+		goto err;
+	}
+
+	/* Validate threshold and load limit */
+	if (opts->load_limit > opts->threshold) {
+		fprintf(stderr, "Error: The load limit is greater than threshold.\n");
+		goto err;
+	}
 
 	/* Initialize syslog */
 	openlog(argv[0], LOG_CONS, opts->log_facility);
@@ -253,6 +272,8 @@ static struct options *opts_init(void)
 	assert(opts);
 	opts->debug = 0; /* daemonize by default */
 	opts->pidfile = strdup(BIRQ_PIDFILE);
+	opts->cfgfile = strdup(BIRQ_CFGFILE);
+	opts->cfgfile_userdefined = 0;
 	opts->pxm = NULL;
 	opts->log_facility = LOG_DAEMON;
 	opts->threshold = BIRQ_DEFAULT_THRESHOLD;
@@ -272,20 +293,82 @@ static void opts_free(struct options *opts)
 {
 	if (opts->pidfile)
 		free(opts->pidfile);
+	if (opts->cfgfile)
+		free(opts->cfgfile);
 	if (opts->pxm)
 		free(opts->pxm);
 	free(opts);
+}
+
+/* Parse 'strategy' option */
+static int opt_parse_strategy(const char *optarg, birq_choose_strategy_e *strategy)
+{
+	assert(optarg);
+	assert(strategy);
+
+	if (!strcmp(optarg, "max"))
+		*strategy = BIRQ_CHOOSE_MAX;
+	else if (!strcmp(optarg, "min"))
+		*strategy = BIRQ_CHOOSE_MIN;
+	else if (!strcmp(optarg, "rnd"))
+		*strategy = BIRQ_CHOOSE_RND;
+	else {
+		fprintf(stderr, "Error: Illegal strategy value %s.\n", optarg);
+		return -1;
+	}
+	return 0;
+}
+
+/* Parse 'threshold' and 'load-limit' options */
+static int opt_parse_threshold(const char *optarg, float *threshold)
+{
+	char *endptr;
+	float thresh;
+
+	assert(optarg);
+	assert(threshold);
+
+	thresh = strtof(optarg, &endptr);
+	if (endptr == optarg) {
+		fprintf(stderr, "Error: Illegal threshold/load-limit value %s.\n", optarg);
+		return -1;
+	}
+	if (thresh > 100.00) {
+		fprintf(stderr, "Error: The threshold/load-limit value %s > 100.\n", optarg);
+		return -1;
+	}
+	*threshold = thresh;
+	return 0;
+}
+
+/* Parse 'short-interval' and 'long-interval' options */
+static int opt_parse_interval(const char *optarg, unsigned int *interval)
+{
+	char *endptr;
+	unsigned long int val;
+
+	assert(optarg);
+	assert(interval);
+
+	val = strtoul(optarg, &endptr, 10);
+	if (endptr == optarg) {
+		fprintf(stderr, "Error: Illegal interval value %s.\n", optarg);
+		return -1;
+	}
+	*interval = val;
+	return 0;
 }
 
 /*--------------------------------------------------------- */
 /* Parse command line options */
 static int opts_parse(int argc, char *argv[], struct options *opts)
 {
-	static const char *shortopts = "hp:dO:t:l:vri:I:s:x:";
+	static const char *shortopts = "hp:c:dO:t:l:vri:I:s:x:";
 #ifdef HAVE_GETOPT_H
 	static const struct option longopts[] = {
 		{"help",		0, NULL, 'h'},
 		{"pid",			1, NULL, 'p'},
+		{"conf",		1, NULL, 'c'},
 		{"debug",		0, NULL, 'd'},
 		{"facility",		1, NULL, 'O'},
 		{"threshold",		1, NULL, 't'},
@@ -293,7 +376,7 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 		{"verbose",		0, NULL, 'v'},
 		{"ht",			0, NULL, 'r'},
 		{"short-interval",	1, NULL, 'i'},
-		{"long-interval",	1, NULL, 'i'},
+		{"long-interval",	1, NULL, 'I'},
 		{"strategy",		1, NULL, 's'},
 		{"pxm",			1, NULL, 'x'},
 		{NULL,			0, NULL, 0}
@@ -315,6 +398,12 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 				free(opts->pidfile);
 			opts->pidfile = strdup(optarg);
 			break;
+		case 'c':
+			if (opts->cfgfile)
+				free(opts->cfgfile);
+			opts->cfgfile = strdup(optarg);
+			opts->cfgfile_userdefined = 1;
+			break;
 		case 'x':
 			if (opts->pxm)
 				free(opts->pxm);
@@ -332,70 +421,28 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 		case 'O':
 			if (lub_log_facility(optarg, &(opts->log_facility))) {
 				fprintf(stderr, "Error: Illegal syslog facility %s.\n", optarg);
-				help(-1, argv[0]);
 				exit(-1);
 			}
 			break;
 		case 't':
-			{
-			char *endptr;
-			float thresh;
-			thresh = strtof(optarg, &endptr);
-			if (endptr == optarg)
-				thresh = opts->threshold;
-			opts->threshold = thresh;
-			if (thresh > 100.00) {
-				fprintf(stderr, "Error: Illegal threshold value %s.\n", optarg);
-				help(-1, argv[0]);
+			if (opt_parse_threshold(optarg, &opts->threshold))
 				exit(-1);
-			}
-			}
 			break;
 		case 'l':
-			{
-			char *endptr;
-			float limit;
-			limit = strtof(optarg, &endptr);
-			if (endptr == optarg)
-				limit = opts->load_limit;
-			opts->load_limit = limit;
-			if (limit > 100.00) {
-				fprintf(stderr, "Error: Illegal load limit value %s.\n", optarg);
-				help(-1, argv[0]);
+			if (opt_parse_threshold(optarg, &opts->load_limit))
 				exit(-1);
-			}
-			}
 			break;
 		case 'i':
-			{
-			char *endptr;
-			unsigned long int val;
-			val = strtoul(optarg, &endptr, 10);
-			if (endptr != optarg)
-				opts->short_interval = val;
-			}
+			if (opt_parse_interval(optarg, &opts->short_interval))
+				exit(-1);
 			break;
 		case 'I':
-			{
-			char *endptr;
-			unsigned long int val;
-			val = strtoul(optarg, &endptr, 10);
-			if (endptr != optarg)
-				opts->long_interval = val;
-			}
+			if (opt_parse_interval(optarg, &opts->long_interval))
+				exit(-1);
 			break;
 		case 's':
-			if (!strcmp(optarg, "max"))
-				opts->strategy = BIRQ_CHOOSE_MAX;
-			else if (!strcmp(optarg, "min"))
-				opts->strategy = BIRQ_CHOOSE_MIN;
-			else if (!strcmp(optarg, "rnd"))
-				opts->strategy = BIRQ_CHOOSE_RND;
-			else {
-				fprintf(stderr, "Error: Illegal strategy value %s.\n", optarg);
-				help(-1, argv[0]);
+			if (opt_parse_strategy(optarg, &opts->strategy) < 0)
 				exit(-1);
-			}
 			break;
 		case 'h':
 			help(0, argv[0]);
@@ -408,12 +455,6 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 		}
 	}
 
-	/* Check threshold and load limit */
-	if (opts->load_limit > opts->threshold) {
-		fprintf(stderr, "Error: The load limit is greater than threshold.\n");
-		help(-1, argv[0]);
-		exit(-1);
-	}
 
 	return 0;
 }
@@ -446,9 +487,10 @@ static void help(int status, const char *argv0)
 		printf("\t-d, --debug Debug mode. Don't daemonize.\n");
 		printf("\t-v, --verbose Be verbose.\n");
 		printf("\t-r, --ht Enable Hyper Threading.\n");
-		printf("\t-p <path>, --pid=<path> File to save daemon's PID to.\n");
+		printf("\t-p <path>, --pid=<path> File to save daemon's PID to (" BIRQ_PIDFILE ").\n");
+		printf("\t-c <path>, --conf=<path> Config file (" BIRQ_CFGFILE ").\n");
 		printf("\t-x <path>, --pxm=<path> Proximity config file.\n");
-		printf("\t-O, --facility Syslog facility. Default is DAEMON.\n");
+		printf("\t-O, --facility Syslog facility (DAEMON).\n");
 		printf("\t-t <float>, --threshold=<float> Threshold to consider CPU is overloaded, in percents. Default threhold is %.2f.\n",
 			BIRQ_DEFAULT_THRESHOLD);
 		printf("\t-l <float>, --load-limit=<float> Don't move IRQs to CPUs loaded more than this limit, in percents. Default limit is %.2f.\n",
@@ -463,6 +505,37 @@ static void help(int status, const char *argv0)
 /* Parse config file */
 static int parse_config(const char *fname, struct options *opts)
 {
+	lub_ini_t *ini;
+	const char *tmp = NULL;
+
+	ini = lub_ini_new();
+	if (lub_ini_parse_file(ini, opts->cfgfile)) {
+		lub_ini_free(ini);
+		return -1;
+	}
+
+	if ((tmp = lub_ini_find(ini, "strategy")))
+		if (opt_parse_strategy(tmp, &opts->strategy) < 0)
+			goto err;
+
+	if ((tmp = lub_ini_find(ini, "threshold")))
+		if (opt_parse_threshold(tmp, &opts->threshold))
+			goto err;
+
+	if ((tmp = lub_ini_find(ini, "load-limit")))
+		if (opt_parse_threshold(tmp, &opts->load_limit))
+			goto err;
+
+	if ((tmp = lub_ini_find(ini, "short-interval")))
+		if (opt_parse_interval(tmp, &opts->short_interval))
+			goto err;
+
+	if ((tmp = lub_ini_find(ini, "long-interval")))
+		if (opt_parse_interval(tmp, &opts->long_interval))
+			goto err;
 
 	return 0;
+err:
+	lub_ini_free(ini);
+	return -1;
 }
