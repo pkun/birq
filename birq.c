@@ -67,6 +67,7 @@ struct options {
 	unsigned int long_interval;
 	unsigned int short_interval;
 	birq_choose_strategy_e strategy;
+	cpumask_t exclude_cpus;
 };
 
 /*--------------------------------------------------------- */
@@ -301,6 +302,8 @@ static struct options *opts_init(void)
 	opts->long_interval = BIRQ_LONG_INTERVAL;
 	opts->short_interval = BIRQ_SHORT_INTERVAL;
 	opts->strategy = BIRQ_CHOOSE_RND;
+	cpus_init(opts->exclude_cpus);
+	cpus_clear(opts->exclude_cpus);
 
 	return opts;
 }
@@ -315,6 +318,7 @@ static void opts_free(struct options *opts)
 		free(opts->cfgfile);
 	if (opts->pxm)
 		free(opts->pxm);
+	cpus_free(opts->exclude_cpus);
 	free(opts);
 }
 
@@ -551,6 +555,12 @@ static int parse_config(const char *fname, struct options *opts)
 	if ((tmp = lub_ini_find(ini, "long-interval")))
 		if (opt_parse_interval(tmp, &opts->long_interval))
 			goto err;
+
+	if ((tmp = lub_ini_find(ini, "exclude-cpus")))
+		if (cpumask_parse_user(tmp, strlen(tmp), opts->exclude_cpus)) {
+			fprintf(stderr, "Error: Can't parse exclude-cpu option \"%s\".\n", tmp);
+			goto err;
+		}
 
 	return 0;
 err:
