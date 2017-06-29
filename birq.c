@@ -130,14 +130,14 @@ int main(int argc, char **argv)
 		if ((pidfd = open(opts->pidfile,
 			O_WRONLY | O_CREAT | O_EXCL | O_TRUNC,
 			S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
-			syslog(LOG_WARNING, "Can't open pidfile %s: %s",
+			syslog(LOG_WARNING, "Can't open pidfile %s: %s\n",
 				opts->pidfile, strerror(errno));
 		} else {
 			char str[20];
 			snprintf(str, sizeof(str), "%u\n", getpid());
 			str[sizeof(str) - 1] = '\0';
 			if (write(pidfd, str, strlen(str)) < 0)
-				syslog(LOG_WARNING, "Can't write to %s: %s",
+				syslog(LOG_WARNING, "Can't write to %s: %s\n",
 					opts->pidfile, strerror(errno));
 			close(pidfd);
 		}
@@ -203,6 +203,17 @@ int main(int argc, char **argv)
 		if (tmp) {
 			strftime(outstr, sizeof(outstr), "%H:%M:%S", tmp);
 			printf("----[ %s ]----------------------------------------------------------------\n", outstr);
+		}
+
+		/* Re-read config file on SIGHUP */
+		if (sighup) {
+			if (!access(opts->cfgfile, R_OK)) {
+				syslog(LOG_ERR, "Re-reading config file\n");
+				if (parse_config(opts->cfgfile, opts))
+					syslog(LOG_ERR, "Error while config file parsing.\n");
+			} else if (opts->cfgfile_userdefined)
+				syslog(LOG_ERR, "Can't find config file.\n");
+			sighup = 0;
 		}
 
 		/* Rescan PCI devices for new IRQs. */
