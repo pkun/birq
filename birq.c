@@ -43,6 +43,9 @@
 static volatile int sigterm = 0; /* Exit if 1 */
 static void sighandler(int signo);
 
+static volatile int sighup = 0; /* Re-read config file */
+static void sighup_handler(int signo);
+
 static void help(int status, const char *argv0);
 static struct options *opts_init(void);
 static void opts_free(struct options *opts);
@@ -152,6 +155,15 @@ int main(int argc, char **argv)
 	sigaction(SIGINT, &sig_act, NULL);
 	sigaction(SIGQUIT, &sig_act, NULL);
 
+	/* SIGHUP handler */
+	sigemptyset(&sig_set);
+	sigaddset(&sig_set, SIGHUP);
+
+	sig_act.sa_flags = 0;
+	sig_act.sa_mask = sig_set;
+	sig_act.sa_handler = &sighup_handler;
+	sigaction(SIGHUP, &sig_act, NULL);
+
 	/* Randomize */
 	srand(time(NULL));
 
@@ -253,12 +265,18 @@ err:
 }
 
 /*--------------------------------------------------------- */
-/*
- * Signal handler for temination signals (like SIGTERM, SIGINT, ...)
- */
+/* Signal handler for temination signals (like SIGTERM, SIGINT, ...) */
 static void sighandler(int signo)
 {
 	sigterm = 1;
+	signo = signo; /* Happy compiler */
+}
+
+/*--------------------------------------------------------- */
+/* Re-read config file on SIGHUP */
+static void sighup_handler(int signo)
+{
+	sighup = 1;
 	signo = signo; /* Happy compiler */
 }
 
