@@ -43,6 +43,7 @@ birq_DEPENDENCIES = liblub.a
 EXTRA_DIST = \
 	lub/module.am \
 	doc/birq.md \
+	examples/birq.conf \
 	LICENCE \
 	README
 
