@@ -17,6 +17,7 @@ int balance(lub_list_t *cpus, lub_list_t *balance_irqs,
 	float load_limit, cpumask_t *exclude_cpus);
 int apply_affinity(lub_list_t *balance_irqs);
 int choose_irqs_to_move(lub_list_t *cpus, lub_list_t *balance_irqs,
-	float threshold, birq_choose_strategy_e strategy);
+	float threshold, birq_choose_strategy_e strategy,
+	cpumask_t *exclude_cpus);
 
 #endif

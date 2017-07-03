@@ -228,7 +228,7 @@ int main(int argc, char **argv)
 		show_statistics(cpus, opts->verbose);
 		/* Choose IRQ to move to another CPU. */
 		choose_irqs_to_move(cpus, balance_irqs,
-			opts->threshold, opts->strategy);
+			opts->threshold, opts->strategy, &opts->exclude_cpus);
 
 		/* Balance IRQs */
 		if (lub_list_len(balance_irqs) != 0) {
@@ -539,6 +539,7 @@ static void help(int status, const char *argv0)
 /* Parse config file */
 static int parse_config(const char *fname, struct options *opts)
 {
+	int ret = -1; /* Pessimistic retval */
 	lub_ini_t *ini;
 	const char *tmp = NULL;
 
@@ -574,8 +575,8 @@ static int parse_config(const char *fname, struct options *opts)
 			goto err;
 		}
 
-	return 0;
+	ret = 0;
 err:
 	lub_ini_free(ini);
-	return -1;
+	return ret;
 }

@@ -296,7 +296,8 @@ static cpu_t * most_overloaded_cpu(lub_list_t *cpus, float threshold)
    The IRQs with small number of interrupts have very low load or very
    high load (in a case of NAPI). */
 int choose_irqs_to_move(lub_list_t *cpus, lub_list_t *balance_irqs,
-	float threshold, birq_choose_strategy_e strategy)
+	float threshold, birq_choose_strategy_e strategy,
+	cpumask_t *exclude_cpus)
 {
 	lub_list_node_t *iter;
 	cpu_t *overloaded_cpu = NULL;
@@ -308,7 +309,27 @@ int choose_irqs_to_move(lub_list_t *cpus, lub_list_t *balance_irqs,
 
 	/* Stage 1: Try to move active IRQs from excluded-CPUs */
 
+	if (!cpus_empty(*exclude_cpus)) {
+		/* Iterate CPU list and find excluded ones */
+		for (iter = lub_list_iterator_init(cpus); iter;
+			iter = lub_list_iterator_next(iter)) {
+			lub_list_node_t *iter2;
+			cpu_t *cpu = (cpu_t *)lub_list_node__get_data(iter);
+			if (!cpu_isset(cpu->id, *exclude_cpus))
+				continue;
+			/* Move all active IRQs to another CPUs */
+			for (iter2 = lub_list_iterator_init(cpu->irqs); iter2;
+				iter2 = lub_list_iterator_next(iter2)) {
+				irq_t *irq = (irq_t *)lub_list_node__get_data(iter2);
+				if (irq->intr == 0)
+					continue;
+				lub_list_add(balance_irqs, irq);
+			}
+		}
+	}
+
 	/* Stage 2: Move IRQs from overloaded CPUs */
+
 	/* Search for overloaded CPUs */
 	if (!(overloaded_cpu = most_overloaded_cpu(cpus, threshold)))
 		return 0;
