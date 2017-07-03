@@ -235,7 +235,8 @@ int main(int argc, char **argv)
 			/* Set short interval to make balancing faster. */
 			interval = opts->short_interval;
 			/* Choose new CPU for IRQs need to be balanced. */
-			balance(cpus, balance_irqs, opts->load_limit);
+			balance(cpus, balance_irqs, opts->load_limit,
+				&opts->exclude_cpus);
 			/* Write new values to /proc/irq/<IRQ>/smp_affinity */
 			apply_affinity(balance_irqs);
 			/* Free list of balanced IRQs */

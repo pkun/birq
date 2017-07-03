@@ -152,7 +152,8 @@ static int irq_set_affinity(irq_t *irq, cpumask_t *cpumask)
 }
 
 /* Find best CPUs for IRQs need to be balanced. */
-int balance(lub_list_t *cpus, lub_list_t *balance_irqs, float load_limit)
+int balance(lub_list_t *cpus, lub_list_t *balance_irqs,
+	float load_limit, cpumask_t *exclude_cpus)
 {
 	lub_list_node_t *iter;
 
@@ -160,10 +161,19 @@ int balance(lub_list_t *cpus, lub_list_t *balance_irqs, float load_limit)
 		iter = lub_list_iterator_next(iter)) {
 		irq_t *irq;
 		cpu_t *cpu;
+		cpumask_t possible_cpus;
+
 		irq = (irq_t *)lub_list_node__get_data(iter);
 		/* Try to find local CPU to move IRQ to.
 		   The local CPU is CPU with native NUMA node. */
-		cpu = choose_cpu(cpus, &(irq->local_cpus), load_limit);
+		/* Possible CPUs is local CPUs minus exclude-CPUs.
+		   possible_cpus = local_cpus & ~exclude_cpus */
+		cpus_init(possible_cpus);
+		cpus_copy(possible_cpus, *exclude_cpus);
+		cpus_complement(possible_cpus, possible_cpus);
+		cpus_and(possible_cpus, possible_cpus, irq->local_cpus);
+		cpu = choose_cpu(cpus, &possible_cpus, load_limit);
+		cpus_free(possible_cpus);
 		/* If local CPU is not found then try to use
 		   CPU from another NUMA node. It's better then
 		   overloaded CPUs. */
@@ -296,6 +306,9 @@ int choose_irqs_to_move(lub_list_t *cpus, lub_list_t *balance_irqs,
 	unsigned int choose = 0;
 	unsigned int current = 0;
 
+	/* Stage 1: Try to move active IRQs from excluded-CPUs */
+
+	/* Stage 2: Move IRQs from overloaded CPUs */
 	/* Search for overloaded CPUs */
 	if (!(overloaded_cpu = most_overloaded_cpu(cpus, threshold)))
 		return 0;
