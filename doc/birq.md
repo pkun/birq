@@ -1,7 +1,7 @@
 ---
 title: The BIRQ user manual
 author: Sergey Kalichev &lt;serj.kalichev@gmail.com&gt;
-date: 2015
+date: 2017
 ...
 
 # Overview
@@ -89,7 +89,7 @@ Actually the birq balancing is not perfect. But I think the perfect balancing is
 
 # Usage
 
-The current version of birq is 1.3.0.
+The current version of birq is 1.4.0.
 
 ```
 $ birq [options]
@@ -100,15 +100,34 @@ Options :
 * **-h, --help** - Print help.
 * **-d, --debug** - Debug mode. Don't daemonize.
 * **-v, --verbose** - Be verbose.
-* **-r, --ht** - Enable Hyper Threading support. The second threads will be considered as a real CPU. Not recommended.
+* **-c &lt;PATH&gt;, --conf=&lt;PATH&gt;** - Config file. Default is /etc/birq/birq.conf. Implemented since birq-1.4.0. 
+* **-x &lt;PATH&gt;, --pxm=&lt;PATH&gt;** - Specify proximity config file. Implemented since birq-1.1.0.
 * **-p &lt;path&gt;, --pid=&lt;path&gt;** - File to save daemon's PID to.
 * **-O &lt;facility&gt;, --facility=&lt;facility&gt;** - Syslog facility. Default is DAEMON.
+
+The following options are legacy. Use config file instead command line options:
+
+* **-r, --ht** - Enable Hyper Threading support. The second threads will be considered as a real CPU. Not recommended.
 * **-t &lt;float&gt;, --threshold=&lt;float&gt;** - Threshold to consider CPU is overloaded, in percents. Float value. Default threshold is 99%.
 * **-l &lt;float&gt;, --load-limit=&lt;float&gt;** - Don't move IRQs to CPUs loaded more than this limit, in percents. Default limit is 95%.
 * **-i &lt;sec&gt;, --short-interval=&lt;sec&gt;** - Short iteration interval in seconds. It will be used when the overloaded CPU is found. Default is 2 seconds.
 * **-I &lt;sec&gt;, --long-interval=&lt;sec&gt;** - Long iteration interval in seconds. It will be used when there is no overloaded CPUs. Default is 5 seconds.
 * **-s &lt;strategy&gt;, --strategy=&lt;strategy&gt;** - Strategy for choosing IRQ to move. The possible values are "min", "max", "rnd". The default is "rnd". Note the birq-1.0.0 uses **-c, --choose** option name for the same functionality.
-* **-x &lt;PATH&gt;, --pxm=&lt;PATH&gt;** - Specify proximity config file. Implemented since birq-1.1.0.
+
+# Configuration file
+
+The default location of config file is /etc/birq/birq.conf. But you can specify another location by '-c' birq command line option.
+
+The config file can be re-read by sending SIGHUP signal to birq daemon.
+
+Options:
+
+* **threshold=&lt;float&gt;** - Threshold to consider CPU is overloaded, in percents. Float value. Default threshold is 99%.
+* **load-limit=&lt;float&gt;** - Don't move IRQs to CPUs loaded more than this limit, in percents. Default limit is 95%.
+* **short-interval=&lt;sec&gt;** - Short iteration interval in seconds. It will be used when the overloaded CPU is found. Default is 2 seconds.
+* **long-interval=&lt;sec&gt;** - Long iteration interval in seconds. It will be used when there is no overloaded CPUs. Default is 5 seconds.
+* **strategy=&lt;strategy&gt;** - Strategy for choosing IRQ to move. The possible values are "min", "max", "rnd". The default is "rnd".
+* **exclude-cpus=&lt;cpumap&gt;** - It allows to exclude some CPUs from the list of CPUs that process IRQs. The 'cpumap' is bit-mask in hex format like in /proc/irq/*/smp_affinity files.
 
 # Proximity
 
