@@ -131,7 +131,7 @@ Options:
 * **strategy=&lt;strategy&gt;** - Strategy for choosing IRQ to move. The possible values are "min", "max", "rnd". The default is "rnd".
 * **exclude-cpus=&lt;cpumap&gt;** - It allows to exclude some CPUs from the list of CPUs that process IRQs. The 'cpumap' is bit-mask in hex format like in /proc/irq/*/smp_affinity files.
 * **ht=&lt;y/n&gt;** - Consider Hyper Threading as a real CPU. Recommended. Default is "y" since birq-1.5.0.
-* **non_local_cpus=&lt;y/n&gt;** - The prefered CPUs to move IRQ to is local CPUs (local NUMA node). By default BIRQ move IRQs to the local CPUs only. But sometimes in a case of a high load it can be better to move IRQ to non-local CPU than process it on overloaded local CPU. Use "y" if you want to use non-local CPUs.
+* **non-local-cpus=&lt;y/n&gt;** - The prefered CPUs to move IRQ to is local CPUs (local NUMA node). By default BIRQ move IRQs to the local CPUs only. But sometimes in a case of a high load it can be better to move IRQ to non-local CPU than process it on overloaded local CPU. Use "y" if you want to use non-local CPUs.
 
 # Proximity
 
