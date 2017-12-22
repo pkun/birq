@@ -73,6 +73,8 @@ The early birq releases suppose that HT is useless feature for IRQ balancing and
 
 Note current birq with disabled HT will get current affinities. The current affinity mostly use HT. Birq will not change this affinity unless the correspondent CPU is overloaded and IRQ is active. So people think the disabling of HT is not working. Really it works. It will move IRQ to the first HT thread only. But second threads already have IRQs on birq start.
 
+The Hyper Threading is enabled by default since birq-1.5.0. You can disable it using "non_local_cpus=n" option in config file.
+
 # Some BIRQ features
 
 The birq gathers statistics of CPU utilization and choose the most overloaded one. Then it choose the IRQ to move away from overloaded CPU. The balancer can use three different strategies to choose IRQ. The strategies are:
@@ -107,7 +109,7 @@ Options :
 
 The following options are legacy. Use config file instead command line options:
 
-* **-r, --ht** - Enable Hyper Threading support. The second threads will be considered as a real CPU. Not recommended.
+* **-r, --ht** - Do nothing since birq-1.5.0. Obsoleted. See "ht" option in config file.
 * **-t &lt;float&gt;, --threshold=&lt;float&gt;** - Threshold to consider CPU is overloaded, in percents. Float value. Default threshold is 99%.
 * **-l &lt;float&gt;, --load-limit=&lt;float&gt;** - Don't move IRQs to CPUs loaded more than this limit, in percents. Default limit is 95%.
 * **-i &lt;sec&gt;, --short-interval=&lt;sec&gt;** - Short iteration interval in seconds. It will be used when the overloaded CPU is found. Default is 2 seconds.
@@ -128,6 +130,8 @@ Options:
 * **long-interval=&lt;sec&gt;** - Long iteration interval in seconds. It will be used when there is no overloaded CPUs. Default is 5 seconds.
 * **strategy=&lt;strategy&gt;** - Strategy for choosing IRQ to move. The possible values are "min", "max", "rnd". The default is "rnd".
 * **exclude-cpus=&lt;cpumap&gt;** - It allows to exclude some CPUs from the list of CPUs that process IRQs. The 'cpumap' is bit-mask in hex format like in /proc/irq/*/smp_affinity files.
+* **ht=&lt;y/n&gt;** - Consider Hyper Threading as a real CPU. Recommended. Default is "y" since birq-1.5.0.
+* **non_local_cpus=&lt;y/n&gt;** - The prefered CPUs to move IRQ to is local CPUs (local NUMA node). By default BIRQ move IRQs to the local CPUs only. But sometimes in a case of a high load it can be better to move IRQ to non-local CPU than process it on overloaded local CPU. Use "y" if you want to use non-local CPUs.
 
 # Proximity
 
