@@ -153,7 +153,7 @@ static int irq_set_affinity(irq_t *irq, cpumask_t *cpumask)
 
 /* Find best CPUs for IRQs need to be balanced. */
 int balance(lub_list_t *cpus, lub_list_t *balance_irqs,
-	float load_limit, cpumask_t *exclude_cpus)
+	float load_limit, cpumask_t *exclude_cpus, int non_local_cpus)
 {
 	lub_list_node_t *iter;
 
@@ -180,14 +180,17 @@ int balance(lub_list_t *cpus, lub_list_t *balance_irqs,
 		/* Non-local CPUs were disabled. It seems there is
 		   no advantages to use them. The all interactions will
 		   be held by QPI-like interfaces through local CPUs. */
-/*		if (!cpu) {
-			cpumask_t complement;
-			cpus_init(complement);
-			cpus_complement(complement, irq->local_cpus);
-			cpu = choose_cpu(cpus, &complement, load_limit);
-			cpus_free(complement);
+		/* May be the previous note is wrong. Using of non local
+		   cpus depends on config option "non_local_cpus" now. */
+		if (!cpu && non_local_cpus) {
+			cpus_init(possible_cpus);
+			cpus_copy(possible_cpus, *exclude_cpus);
+			cpus_or(possible_cpus, possible_cpus, irq->local_cpus);
+			cpus_complement(possible_cpus, possible_cpus);
+			cpu = choose_cpu(cpus, &possible_cpus, load_limit);
+			cpus_free(possible_cpus);
 		}
-*/
+
 		if (cpu) {
 			if (irq->cpu)
 				printf("Move IRQ %u from CPU%u to CPU%u\n",

@@ -64,6 +64,7 @@ struct options {
 	float load_limit;
 	int verbose;
 	int ht;
+	int non_local_cpus;
 	unsigned int long_interval;
 	unsigned int short_interval;
 	birq_choose_strategy_e strategy;
@@ -236,7 +237,7 @@ int main(int argc, char **argv)
 			interval = opts->short_interval;
 			/* Choose new CPU for IRQs need to be balanced. */
 			balance(cpus, balance_irqs, opts->load_limit,
-				&opts->exclude_cpus);
+				&opts->exclude_cpus, opts->non_local_cpus);
 			/* Write new values to /proc/irq/<IRQ>/smp_affinity */
 			apply_affinity(balance_irqs);
 			/* Free list of balanced IRQs */
@@ -310,7 +311,8 @@ static struct options *opts_init(void)
 	opts->threshold = BIRQ_DEFAULT_THRESHOLD;
 	opts->load_limit = BIRQ_DEFAULT_LOAD_LIMIT;
 	opts->verbose = 0;
-	opts->ht = 0;
+	opts->ht = 1; /* It's 1 since 1.5.0 */
+	opts->non_local_cpus = 0;
 	opts->long_interval = BIRQ_LONG_INTERVAL;
 	opts->short_interval = BIRQ_SHORT_INTERVAL;
 	opts->strategy = BIRQ_CHOOSE_RND;
@@ -332,6 +334,27 @@ static void opts_free(struct options *opts)
 		free(opts->pxm);
 	cpus_free(opts->exclude_cpus);
 	free(opts);
+}
+
+/* Parse y/n options */
+static int opt_parse_y_n(const char *optarg, int *flag)
+{
+	assert(optarg);
+	assert(flag);
+
+	if (!strcmp(optarg, "y"))
+		*flag = 1;
+	else if (!strcmp(optarg, "yes"))
+		*flag = 1;
+	else if (!strcmp(optarg, "n"))
+		*flag = 0;
+	else if (!strcmp(optarg, "no"))
+		*flag = 0;
+	else {
+		fprintf(stderr, "Error: Illegal flag value %s.\n", optarg);
+		return -1;
+	}
+	return 0;
 }
 
 /* Parse 'strategy' option */
@@ -450,7 +473,7 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 			opts->verbose = 1;
 			break;
 		case 'r':
-			opts->ht = 1;
+			fprintf(stderr, "Warning: The -r option is obsoleted. The HT is enabled by default.\n");
 			break;
 		case 'O':
 			if (lub_log_facility(optarg, &(opts->log_facility))) {
@@ -520,7 +543,7 @@ static void help(int status, const char *argv0)
 		printf("\t-h, --help Print this help.\n");
 		printf("\t-d, --debug Debug mode. Don't daemonize.\n");
 		printf("\t-v, --verbose Be verbose.\n");
-		printf("\t-r, --ht Enable Hyper Threading.\n");
+		printf("\t-r, --ht This option is obsoleted. The Hyper Threading is enabled by default.\n");
 		printf("\t-p <path>, --pid=<path> File to save daemon's PID to (" BIRQ_PIDFILE ").\n");
 		printf("\t-c <path>, --conf=<path> Config file (" BIRQ_CFGFILE ").\n");
 		printf("\t-x <path>, --pxm=<path> Proximity config file.\n");
@@ -574,6 +597,14 @@ static int parse_config(const char *fname, struct options *opts)
 			fprintf(stderr, "Error: Can't parse exclude-cpu option \"%s\".\n", tmp);
 			goto err;
 		}
+
+	if ((tmp = lub_ini_find(ini, "ht")))
+		if (opt_parse_y_n(tmp, &opts->ht))
+			goto err;
+
+	if ((tmp = lub_ini_find(ini, "non-local-cpus")))
+		if (opt_parse_y_n(tmp, &opts->non_local_cpus))
+			goto err;
 
 	ret = 0;
 err:
