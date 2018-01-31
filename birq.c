@@ -110,10 +110,11 @@ int main(int argc, char **argv)
 	}
 
 	/* Validate threshold and load limit */
-	if (opts->load_limit > opts->threshold) {
+/*	if (opts->load_limit > opts->threshold) {
 		fprintf(stderr, "Error: The load limit is greater than threshold.\n");
 		goto err;
 	}
+*/
 
 	/* Initialize syslog */
 	openlog(argv[0], LOG_CONS, opts->log_facility);
