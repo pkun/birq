@@ -14,6 +14,7 @@ struct cpu_s {
 	float old_load; /* Previous CPU load in percents. */
 	float load; /* Current CPU load in percents. */
 	lub_list_t *irqs; /* List of IRQs belong to this CPU. */
+	unsigned int use_cnt; /* How many IRQs were moved to this CPU on current tact */
 };
 typedef struct cpu_s cpu_t;
 

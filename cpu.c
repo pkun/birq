@@ -45,6 +45,7 @@ static cpu_t * cpu_new(unsigned int id)
 	cpus_init(new->cpumask);
 	cpus_clear(new->cpumask);
 	cpu_set(new->id, new->cpumask);
+	new->use_cnt = 0;
 
 	return new;
 }
