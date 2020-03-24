@@ -566,9 +566,10 @@ static int parse_config(const char *fname, struct options *opts)
 	int ret = -1; /* Pessimistic retval */
 	lub_ini_t *ini;
 	const char *tmp = NULL;
+	unsigned int mask_opts_num = 0;
 
 	ini = lub_ini_new();
-	if (lub_ini_parse_file(ini, opts->cfgfile)) {
+	if (lub_ini_parse_file(ini, fname)) {
 		lub_ini_free(ini);
 		return -1;
 	}
@@ -593,11 +594,33 @@ static int parse_config(const char *fname, struct options *opts)
 		if (opt_parse_interval(tmp, &opts->long_interval))
 			goto err;
 
-	if ((tmp = lub_ini_find(ini, "exclude-cpus")))
+	if ((tmp = lub_ini_find(ini, "exclude-cpus"))) {
 		if (cpumask_parse_user(tmp, strlen(tmp), opts->exclude_cpus)) {
-			fprintf(stderr, "Error: Can't parse exclude-cpu option \"%s\".\n", tmp);
+			fprintf(stderr, "Error: Can't parse exclude-cpus option \"%s\".\n", tmp);
 			goto err;
 		}
+		mask_opts_num++;
+	}
+
+	if ((tmp = lub_ini_find(ini, "use-cpus"))) {
+		if (cpumask_parse_user(tmp, strlen(tmp), opts->exclude_cpus)) {
+			fprintf(stderr, "Error: Can't parse use-cpus option \"%s\".\n", tmp);
+			goto err;
+		}
+		/* The exclude-cpus option was implemented first. So the
+		 * programm is based on it. The use-cpus options really
+		 * says to exclude all the cpus that is not within bitmask.
+		 * So invert use-cpus and we'll get exclude-cpus mask.
+		 */
+		cpus_complement(opts->exclude_cpus, opts->exclude_cpus);
+		mask_opts_num++;
+	}
+
+	/* Check if cpus mask was defined more than once. It's error. */
+	if (mask_opts_num > 1) {
+		fprintf(stderr, "Error: Can't use use-cpus and exclude-cpus options together.\n");
+		goto err;
+	}
 
 	if ((tmp = lub_ini_find(ini, "ht")))
 		if (opt_parse_y_n(tmp, &opts->ht))
