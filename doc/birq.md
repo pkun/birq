@@ -129,8 +129,8 @@ Options:
 * **short-interval=&lt;sec&gt;** - Short iteration interval in seconds. It will be used when the overloaded CPU is found. Default is 2 seconds.
 * **long-interval=&lt;sec&gt;** - Long iteration interval in seconds. It will be used when there is no overloaded CPUs. Default is 5 seconds.
 * **strategy=&lt;strategy&gt;** - Strategy for choosing IRQ to move. The possible values are "min", "max", "rnd". The default is "rnd".
-* **exclude-cpus=&lt;cpumap&gt;** - It allows to exclude some CPUs from the list of CPUs that process IRQs. The 'cpumap' is bit-mask in hex format like in /proc/irq/*/smp_affinity files. It can't be used together with 'use-cpus' option.
-* **use-cpus=&lt;cpumap&gt;** - It allows to specify CPUs to use for IRQs processing. The 'cpumap' is bit-mask in hex format like in /proc/irq/*/smp_affinity files. It can't be used together with 'exclude-cpus' option.
+* **exclude-cpus=&lt;cpumap&gt;** - It allows to exclude some CPUs from the list of CPUs that process IRQs. The 'cpumap' is bit-mask in hex format like in /proc/irq/*/smp_affinity files. Real affinity will be (use-cpus & ~exclude-cpus).
+* **use-cpus=&lt;cpumap&gt;** - It allows to specify CPUs to use for IRQs processing. The 'cpumap' is bit-mask in hex format like in /proc/irq/*/smp_affinity files. Real affinity will be (use-cpus & ~exclude-cpus).
 * **ht=&lt;y/n&gt;** - Consider Hyper Threading as a real CPU. Recommended. Default is "y" since birq-1.5.0.
 * **non-local-cpus=&lt;y/n&gt;** - The prefered CPUs to move IRQ to is local CPUs (local NUMA node). By default BIRQ move IRQs to the local CPUs only. But sometimes in a case of a high load it can be better to move IRQ to non-local CPU than process it on overloaded local CPU. Use "y" if you want to use non-local CPUs.
 
