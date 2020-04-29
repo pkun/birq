@@ -315,9 +315,6 @@ static struct options *opts_init(void)
 	cpus_init(opts->exclude_cpus);
 
 	// Set command line options defaults.
-	// Don't set defaults for config file options here because it must be
-	// done every time while config file re-read. See opts_default_config().
-	// The parse_config() function must set it before parsing.
 	opts->debug = 0; /* daemonize by default */
 	opts->pidfile = strdup(BIRQ_PIDFILE);
 	opts->cfgfile = strdup(BIRQ_CFGFILE);
@@ -325,6 +322,10 @@ static struct options *opts_init(void)
 	opts->pxm = NULL;
 	opts->log_facility = LOG_DAEMON;
 	opts->verbose = 0;
+
+	// The daemon can be used without config file. So set defaults for
+	// options from config file.
+	opts_default_config(opts);
 
 	return opts;
 }
@@ -545,7 +546,8 @@ static int parse_config(const char *fname, struct options *opts)
 	const char *tmp = NULL;
 	cpumask_t use_cpus;
 
-	// Set options defaults
+	// Set options defaults. It's necessary because the config file can be
+	// re-read by SIGHUP. So we need to drop old values to default state.
 	opts_default_config(opts);
 
 	ini = lub_ini_new();
