@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 m4_define([MAJOR_VERSION], 1)
-m4_define([MINOR_VERSION], 5)
+m4_define([MINOR_VERSION], 6)
 m4_define([MICRO_VERSION], 0)
 
 AC_PREREQ(2.59)
