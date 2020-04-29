@@ -430,7 +430,7 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 		{"debug",		0, NULL, 'd'},
 		{"facility",		1, NULL, 'O'},
 		{"threshold",		1, NULL, 't'},
-		{"load-limit",		1, NULL, 't'},
+		{"load-limit",		1, NULL, 'l'},
 		{"verbose",		0, NULL, 'v'},
 		{"ht",			0, NULL, 'r'},
 		{"short-interval",	1, NULL, 'i'},
