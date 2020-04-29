@@ -109,13 +109,6 @@ int main(int argc, char **argv)
 		goto err;
 	}
 
-	/* Validate threshold and load limit */
-/*	if (opts->load_limit > opts->threshold) {
-		fprintf(stderr, "Error: The load limit is greater than threshold.\n");
-		goto err;
-	}
-*/
-
 	/* Initialize syslog */
 	openlog(argv[0], LOG_CONS, opts->log_facility);
 	syslog(LOG_ERR, "Start daemon.\n");
@@ -296,29 +289,42 @@ static void sighup_handler(int signo)
 }
 
 /*--------------------------------------------------------- */
+/* Set defaults for options from config file (not command line) */
+static void opts_default_config(struct options *opts)
+{
+	assert(opts);
+
+	opts->threshold = BIRQ_DEFAULT_THRESHOLD;
+	opts->load_limit = BIRQ_DEFAULT_LOAD_LIMIT;
+	opts->ht = 1; /* It's 1 since 1.5.0 */
+	opts->non_local_cpus = 0;
+	opts->long_interval = BIRQ_LONG_INTERVAL;
+	opts->short_interval = BIRQ_SHORT_INTERVAL;
+	opts->strategy = BIRQ_CHOOSE_RND;
+	cpus_clear(opts->exclude_cpus);
+}
+/*--------------------------------------------------------- */
 /* Initialize option structure by defaults */
 static struct options *opts_init(void)
 {
 	struct options *opts = NULL;
 
+	// Allocate structures
 	opts = malloc(sizeof(*opts));
 	assert(opts);
+	cpus_init(opts->exclude_cpus);
+
+	// Set command line options defaults.
+	// Don't set defaults for config file options here because it must be
+	// done every time while config file re-read. See opts_default_config().
+	// The parse_config() function must set it before parsing.
 	opts->debug = 0; /* daemonize by default */
 	opts->pidfile = strdup(BIRQ_PIDFILE);
 	opts->cfgfile = strdup(BIRQ_CFGFILE);
 	opts->cfgfile_userdefined = 0;
 	opts->pxm = NULL;
 	opts->log_facility = LOG_DAEMON;
-	opts->threshold = BIRQ_DEFAULT_THRESHOLD;
-	opts->load_limit = BIRQ_DEFAULT_LOAD_LIMIT;
 	opts->verbose = 0;
-	opts->ht = 1; /* It's 1 since 1.5.0 */
-	opts->non_local_cpus = 0;
-	opts->long_interval = BIRQ_LONG_INTERVAL;
-	opts->short_interval = BIRQ_SHORT_INTERVAL;
-	opts->strategy = BIRQ_CHOOSE_RND;
-	cpus_init(opts->exclude_cpus);
-	cpus_clear(opts->exclude_cpus);
 
 	return opts;
 }
@@ -421,7 +427,7 @@ static int opt_parse_interval(const char *optarg, unsigned int *interval)
 /* Parse command line options */
 static int opts_parse(int argc, char *argv[], struct options *opts)
 {
-	static const char *shortopts = "hp:c:dO:t:l:vri:I:s:x:";
+	static const char *shortopts = "hp:c:dO:vx:";
 #ifdef HAVE_GETOPT_H
 	static const struct option longopts[] = {
 		{"help",		0, NULL, 'h'},
@@ -429,13 +435,7 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 		{"conf",		1, NULL, 'c'},
 		{"debug",		0, NULL, 'd'},
 		{"facility",		1, NULL, 'O'},
-		{"threshold",		1, NULL, 't'},
-		{"load-limit",		1, NULL, 't'},
 		{"verbose",		0, NULL, 'v'},
-		{"ht",			0, NULL, 'r'},
-		{"short-interval",	1, NULL, 'i'},
-		{"long-interval",	1, NULL, 'I'},
-		{"strategy",		1, NULL, 's'},
 		{"pxm",			1, NULL, 'x'},
 		{NULL,			0, NULL, 0}
 	};
@@ -473,34 +473,11 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 		case 'v':
 			opts->verbose = 1;
 			break;
-		case 'r':
-			fprintf(stderr, "Warning: The -r option is obsoleted. The HT is enabled by default.\n");
-			break;
 		case 'O':
 			if (lub_log_facility(optarg, &(opts->log_facility))) {
 				fprintf(stderr, "Error: Illegal syslog facility %s.\n", optarg);
 				exit(-1);
 			}
-			break;
-		case 't':
-			if (opt_parse_threshold(optarg, &opts->threshold))
-				exit(-1);
-			break;
-		case 'l':
-			if (opt_parse_threshold(optarg, &opts->load_limit))
-				exit(-1);
-			break;
-		case 'i':
-			if (opt_parse_interval(optarg, &opts->short_interval))
-				exit(-1);
-			break;
-		case 'I':
-			if (opt_parse_interval(optarg, &opts->long_interval))
-				exit(-1);
-			break;
-		case 's':
-			if (opt_parse_strategy(optarg, &opts->strategy) < 0)
-				exit(-1);
 			break;
 		case 'h':
 			help(0, argv[0]);
@@ -564,9 +541,12 @@ static void help(int status, const char *argv0)
 static int parse_config(const char *fname, struct options *opts)
 {
 	int ret = -1; /* Pessimistic retval */
-	lub_ini_t *ini;
+	lub_ini_t *ini = NULL;
 	const char *tmp = NULL;
 	cpumask_t use_cpus;
+
+	// Set options defaults
+	opts_default_config(opts);
 
 	ini = lub_ini_new();
 	if (lub_ini_parse_file(ini, fname)) {
