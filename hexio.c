@@ -76,13 +76,14 @@ int64_t next_chunk(const char **buf, size_t *buflen)
 int count_chunks(const char *buf, size_t buflen)
 {
 	int chunks = 0;
-	int64_t chunk;
+
 	while (buflen && *buf != '\0') {
-		if ((chunk = next_chunk(&buf, &buflen)) >= 0)
+		if (next_chunk(&buf, &buflen) >= 0)
 			chunks++;
 		else
 			return -1;
 	}
+
 	return chunks;
 }
 
