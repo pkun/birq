@@ -19,5 +19,5 @@ Docs : https://src.libcode.org/pkun/birq/src/master/doc/birq.md
 
 Mailing list : http://groups.google.com/group/birq
 
-Author : Serj Kalichev '<pkun(_at_)libcode.org>'
+Author : Serj Kalichev `<pkun(_at_)libcode.org>`
 
