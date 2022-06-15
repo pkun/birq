@@ -45,6 +45,6 @@ EXTRA_DIST = \
 	doc/birq.md \
 	examples/birq.conf \
 	LICENCE \
-	README
+	README.md
 
 include $(top_srcdir)/lub/module.am
