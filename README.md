@@ -13,7 +13,9 @@ Homepage : http://birq.libcode.org
 
 Repository : https://src.libcode.org/pkun/birq
 
-Download : https://src.libcode.org/pkun/birq/archive/1.6.1.tar.gz
+Download : https://src.libcode.org/download/birq/
+
+Latest release : https://src.libcode.org/download/birq/birq-1.6.1.tar.xz
 
 Docs : https://src.libcode.org/pkun/birq/src/master/doc/birq.md
 
