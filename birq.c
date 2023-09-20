@@ -111,7 +111,7 @@ int main(int argc, char **argv)
 
 	/* Initialize syslog */
 	openlog(argv[0], LOG_CONS, opts->log_facility);
-	syslog(LOG_ERR, "Start daemon.\n");
+	syslog(LOG_INFO, "Start daemon\n");
 
 	/* Fork the daemon */
 	if (!opts->debug) {
@@ -203,11 +203,11 @@ int main(int argc, char **argv)
 		/* Re-read config file on SIGHUP */
 		if (sighup) {
 			if (!access(opts->cfgfile, R_OK)) {
-				syslog(LOG_ERR, "Re-reading config file\n");
+				syslog(LOG_INFO, "Re-reading config file\n");
 				if (parse_config(opts->cfgfile, opts))
-					syslog(LOG_ERR, "Error while config file parsing.\n");
+					syslog(LOG_ERR, "Error while config file parsing\n");
 			} else if (opts->cfgfile_userdefined)
-				syslog(LOG_ERR, "Can't find config file.\n");
+				syslog(LOG_ERR, "Can't find config file\n");
 			sighup = 0;
 		}
 
@@ -260,14 +260,14 @@ err:
 	/* Remove pidfile */
 	if (pidfd >= 0) {
 		if (unlink(opts->pidfile) < 0) {
-			syslog(LOG_ERR, "Can't remove pid-file %s: %s\n",
+			syslog(LOG_WARNING, "Can't remove pid-file %s: %s\n",
 			opts->pidfile, strerror(errno));
 		}
 	}
 
 	/* Free command line options */
 	opts_free(opts);
-	syslog(LOG_ERR, "Stop daemon.\n");
+	syslog(LOG_INFO, "Stop daemon\n");
 
 	return retval;
 }
